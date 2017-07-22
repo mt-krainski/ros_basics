@@ -1,0 +1,173 @@
+<?xml version="1.0"?>
+<robot name="basic_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="PI" value="3.1416"/>
+  <material name="black">
+    <color rgba="0 0 0 1"/>
+  </material>
+  <material name="dark">
+    <color rgba="0.2 0.2 0.2 1"/>
+  </material>
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1.0"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.0 0.0 1.0 1.0"/>
+  </material>
+
+  <xacro:property name="base_width" value="0.2"/>
+  <xacro:property name="base_length" value="0.3"/>
+  <xacro:property name="base_height" value="0.1"/>
+
+  <xacro:property name="wheel_radius" value="0.1"/>
+  <xacro:property name="wheel_width" value="0.07"/>
+
+  <xacro:include filename="diff.gazebo"/>
+
+  <link name="base_link">
+    <xacro:property name="mass" value="0.9"/>
+    <visual>
+      <geometry>
+        <box size="${base_width} ${base_length} ${base_height}"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${base_width} ${base_length} ${base_height}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="${mass}"/>
+      <inertia ixx="${1/12 * mass * (base_height**2 + base_length**2)}" ixy="0.0" ixz="0.0"
+                    iyy="${1/12 * mass * (base_width**2 + base_height**2)}" iyz="0.0"
+                         izz="${1/12 * mass * (base_width**2 + base_length**2)}"/>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+    </inertial>
+  </link>
+
+  <xacro:macro name="insertWheel" params="posName *origin">
+    <xacro:property name="mass" value="0.25"/>
+    <link name="wheel${posName}">
+      <visual>
+        <geometry>
+          <cylinder length="${wheel_width}" radius="${wheel_radius}"/>
+        </geometry>
+        <origin xyz="0 0 0 " rpy="0 ${PI/2} 0" />
+        <material name="dark"/>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder length="${wheel_width}" radius="${wheel_radius}"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="0 ${PI/2} 0" />
+      </collision>
+      <inertial>
+        <mass value="${mass}"/>
+        <inertia ixx="${1/12 * mass * (3*wheel_radius**2 + wheel_width**2)}" ixy="0.0" ixz="0.0"
+                      iyy="${1/12 * mass * (3*wheel_radius**2 + wheel_width**2)}" iyz="0.0"
+                           izz="${1/2 * mass * wheel_radius**2}"/>
+        <origin xyz="0 0 0" rpy="0 ${PI/2} 0" />
+      </inertial>
+    </link>
+    <joint name="baseToWheel${posName}" type="continuous">
+      <parent link="base_link"/>
+      <child link="wheel${posName}"/>
+      <xacro:insert_block name="origin"/>
+      <dynamics friction="0.0001" damping="0.00005"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:insertWheel posName="RearRight">
+    <origin xyz="${base_width/2.0 + wheel_width/2.0} ${-base_length*0.8/2} 0" rpy="0 0 ${PI}"/>
+  </xacro:insertWheel>
+
+  <xacro:insertWheel posName="RearLeft">
+    <origin xyz="${-(base_width/2.0 + wheel_width/2.0)} ${-base_length*0.8/2} 0" rpy="0 0 ${PI}"/>
+  </xacro:insertWheel>
+
+  <xacro:property name="ballRadius" value="0.05"/>
+
+  <link name="ballcaster">
+    <visual>
+      <geometry>
+        <sphere radius="${ballRadius}"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${ballRadius}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="baseToBallcaster" type="fixed">
+    <parent link="base_link"/>
+    <child link="ballcaster"/>
+    <origin xyz="0 ${base_length/2.0 - ballRadius} ${-base_height/2.0}"/>
+  </joint>
+
+  <link name="lidar">
+    <xacro:property name="lidar_height" value="0.05"/>
+    <xacro:property name="lidar_radius" value="0.05"/>
+    <visual>
+      <geometry>
+        <cylinder length="${lidar_height}" radius="${lidar_radius}"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="${lidar_height}" radius="${lidar_radius}"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <xacro:property name="lidar_mass" value="0.1"/>
+      <mass value="${lidar_mass}"/>
+      <inertia ixx="${1/12 * lidar_mass * (3*lidar_radius**2 + lidar_height**2)}" ixy="0.0" ixz="0.0"
+                    iyy="${1/12 * lidar_mass * (3*lidar_radius**2 + lidar_height**2)}" iyz="0.0"
+                         izz="${1/2 * lidar_mass * lidar_radius**2}"/>
+    </inertial>
+  </link>
+
+  <joint name="baseToLidar" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin xyz="0 ${base_length*0.6/2} ${base_height/2 + lidar_height/2}" rpy="0 0 ${PI/2}"/>
+    <parent link="base_link"/>
+    <child link="lidar"/>
+  </joint>
+
+  <xacro:property name="camera_size" value="0.02" />
+  <link name="camera_link">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+    <box size="${camera_size} ${camera_size} ${camera_size}"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+    <box size="${camera_size} ${2*camera_size} ${camera_size}"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+
+    <inertial>
+      <mass value="1e-5"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+
+  <joint name="camera_joint" type="fixed">
+    <axis xyz="0 1 0"/>
+    <origin xyz="0 ${base_length/2+camera_size/2} ${base_height/2}" rpy="0 0 ${PI/2}"/>
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+  </joint>
+
+</robot>
