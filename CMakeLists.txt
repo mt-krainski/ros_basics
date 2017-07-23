@@ -194,6 +194,8 @@ install(TARGETS hello_ros minimal_publisher minimal_subscriber turtle_mover
 install(DIRECTORY
    launch
    urdf
+   rviz
+   worlds
    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
  )
 
